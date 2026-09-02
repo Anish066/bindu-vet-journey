@@ -1,552 +1,983 @@
+
 import React, { useEffect, useState } from "react";
+import GalleryViewer from "../components/GalleryViewer";
+
 import {
-ArrowRight,
-Award,
-CalendarDays,
-Facebook,
-GraduationCap,
-Heart,
-Instagram,
-Linkedin,
-Mail,
-MapPin,
-PawPrint,
-Sparkles,
+  ArrowRight,
+  Award,
+  CalendarDays,
+  Heart,
+  Instagram,
+  Mail,
+  MapPin,
+  PawPrint,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
+
 import { client } from "../sanity/client";
 import {
-activitiesQuery,
-galleryQuery,
-homeQuery,
+  activitiesQuery,
+  galleryQuery,
+  homeQuery,
+  achievementsQuery,
 } from "../sanity/queries";
 
 export default function Home({ go }) {
-const [activities, setActivities] = useState([]);
-const [gallery, setGallery] = useState([]);
-const [home, setHome] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [gallery, setGallery] = useState([]);
+  const [home, setHome] = useState(null);
+  const [achievements, setAchievements] = useState([]);
 
-useEffect(() => {
-client
-.fetch(activitiesQuery)
-.then((data) => setActivities(data.slice(0, 3)))
-.catch((err) =>
-console.error("Failed to load activities:", err)
-);
+  const [selectedGalleryAlbum, setSelectedGalleryAlbum] =
+    useState(null);
 
+  const [selectedGalleryImage, setSelectedGalleryImage] =
+    useState(0);
 
-client
-  .fetch(galleryQuery)
-  .then((data) => setGallery(data.slice(0, 6)))
-  .catch((err) =>
-    console.error("Failed to load gallery:", err)
-  );
+  /* SUBSCRIBE */
 
-client
-  .fetch(homeQuery)
-  .then((data) => setHome(data))
-  .catch((err) =>
-    console.error("Failed to load home page:", err)
-  );
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
 
-}, []);
+    setSubscribeError("");
+    setSubscribed(false);
 
-/* FALLBACK DATA
-These values appear if the Home Page in Sanity
-has not been filled in yet.
-*/
+    const trimmedEmail = email.trim();
 
-const name = home?.name || "Bindu Basnet";
+    if (!trimmedEmail) {
+      setSubscribeError("Please enter your email address.");
+      return;
+    }
 
-const role = home?.role || "VETERINARY STUDENT";
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const heroText =
-home?.heroText ||
-"A passionate veterinary student documenting experiences, discoveries, and meaningful moments from my journey in animal health and welfare.";
+    if (!emailPattern.test(trimmedEmail)) {
+      setSubscribeError("Please enter a valid email address.");
+      return;
+    }
 
-const heroImage =
-home?.heroImage ||
-"https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1200&q=85";
+    try {
+      setIsSubmitting(true);
 
-const location = home?.location || "Nepal";
+      const response = await fetch(
+        "https://formspree.io/f/xyeywree",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            email: trimmedEmail,
+          }),
+        }
+      );
 
-const locationText =
-home?.locationText || "Learning every day";
+      if (response.ok) {
+        setSubscribed(true);
+        setEmail("");
+      } else {
+        setSubscribeError(
+          "Something went wrong. Please try again."
+        );
+      }
+    } catch (error) {
+      console.error("Subscription error:", error);
 
-const aboutTitle =
-home?.aboutTitle ||
-"Learning to care, one experience at a time.";
+      setSubscribeError(
+        "Unable to subscribe right now. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-const aboutText =
-home?.aboutText ||
-"Veterinary medicine is more than treating animals. It is about understanding, compassion, responsibility, and continuously learning from every experience.";
+  /* LOAD SANITY CONTENT */
 
-const profileImage =
-home?.profileImage ||
-"https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=85";
+  useEffect(() => {
+    client
+      .fetch(activitiesQuery)
+      .then((data) => setActivities(data.slice(0, 3)))
+      .catch((err) =>
+        console.error("Failed to load activities:", err)
+      );
 
-return (
-<> <main>
-{/* HERO */} <section className="hero" id="home"> <div className="container heroGrid"> <div> <div className="kicker"> <Sparkles size={15} />
-DOCUMENTING THE JOURNEY </div>
+    client
+      .fetch(galleryQuery)
+      .then((data) => setGallery(data.slice(0, 6)))
+      .catch((err) =>
+        console.error("Failed to load gallery:", err)
+      );
 
+    client
+      .fetch(homeQuery)
+      .then((data) => setHome(data))
+      .catch((err) =>
+        console.error("Failed to load home page:", err)
+      );
 
-          <h1>
-            Hi, I'm <span>{name}.</span>
-          </h1>
+    client
+      .fetch(achievementsQuery)
+      .then((data) => setAchievements(data))
+      .catch((err) =>
+        console.error("Failed to load achievements:", err)
+      );
+  }, []);
 
-          <h2>
-            {role} <PawPrint size={27} />
-          </h2>
+  /* FALLBACK DATA */
 
-          <p>{heroText}</p>
+  const name = home?.name || "Bindu Basnet";
 
-          <div className="actions">
-            <button
-              className="btn primary"
-              onClick={() => go("activities")}
-            >
-              Explore My Activities
-              <ArrowRight size={17} />
-            </button>
+  const role =
+    home?.role || "VETERINARY STUDENT";
 
-            <button
-              className="btn secondary"
-              onClick={() => go("about")}
-            >
-              About Me
-            </button>
-          </div>
+  const heroText =
+    home?.heroText ||
+    "A passionate veterinary student documenting experiences, discoveries, and meaningful moments from my journey in animal health and welfare.";
 
-          <div className="facts">
-            <div>
-              <GraduationCap />
+  const heroImage =
+    home?.heroImage ||
+    "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1200&q=85";
 
-              <span>
-                <b>Student</b>
-                <small>B.V.Sc. & A.H.</small>
-              </span>
-            </div>
+  const location = home?.location || "Nepal";
 
-            <div>
-              <MapPin />
+  const locationText =
+    home?.locationText || "Learning every day";
 
-              <span>
-                <b>{location}</b>
-                <small>{locationText}</small>
-              </span>
-            </div>
+  const aboutTitle =
+    home?.aboutTitle ||
+    "Learning to care, one experience at a time.";
 
-            <div>
-              <Heart />
+  const aboutText =
+    home?.aboutText ||
+    "Veterinary medicine is more than treating animals. It is about understanding, compassion, responsibility, and continuously learning from every experience.";
 
-              <span>
-                <b>Passionate About</b>
-                <small>Animal Health & Welfare</small>
-              </span>
-            </div>
-          </div>
-        </div>
+  const profileImage =
+    home?.profileImage ||
+    "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=85";
 
-        <div className="heroImg">
-          <img
-            src={heroImage}
-            alt={`${name}'s veterinary journey`}
-          />
+  const featuredAchievements = achievements
+    .filter(
+      (achievement) => achievement.featured !== false
+    )
+    .slice(0, 3);
 
-          <div className="quote">
-            "Every animal deserves care, compassion, and a voice."
-          </div>
-        </div>
-      </div>
-    </section>
+  return (
+    <>
+      <main className="homePage">
 
-    {/* ABOUT */}
-    <section className="section about" id="about">
-      <div className="container aboutGrid">
-        <div>
-          <img
-            className="portrait"
-            src={profileImage}
-            alt={`${name} - Veterinary student`}
-          />
-        </div>
+        {/* =========================
+            HERO
+        ========================= */}
 
-        <div>
-          <div className="kicker">
-            <PawPrint size={15} />
-            ABOUT MY JOURNEY
-          </div>
+        <section className="homeHero" id="home">
+          <div className="container homeHeroGrid">
 
-          <h2 className="title">
-            {aboutTitle}
-          </h2>
+            <div className="homeHeroContent">
 
-          <p>{aboutText}</p>
+              <div className="homeEyebrow">
+                <span></span>
+                VETERINARY JOURNEY
+              </div>
 
-          <p>
-            Through farm visits, clinical exposure, laboratory work,
-            workshops, seminars, and everyday student life, I am
-            building my understanding of animal health and welfare.
-          </p>
+              <h1>
+                Hi, I'm{" "}
+                <span>{name}.</span>
+              </h1>
 
-          <div className="stats">
-            <div>
-              <b>2026</b>
-              <small>Graduation Journey</small>
-            </div>
+              <div className="homeHeroRole">
+                <PawPrint size={18} />
+                {role}
+              </div>
 
-            <div>
-              <b>B.V.Sc.</b>
-              <small>Veterinary Medicine</small>
-            </div>
+              <p className="homeHeroText">
+                {heroText}
+              </p>
 
-            <div>
-              <b>∞</b>
-              <small>Things to Learn</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+              <div className="homeHeroActions">
 
-    {/* ACTIVITIES */}
-    <section className="section soft">
-      <div className="container">
-        <div className="head">
-          <div>
-            <div className="kicker">
-              <Sparkles size={15} />
-              RECENT EXPERIENCES
-            </div>
+                <button
+                  className="homePrimaryButton"
+                  onClick={() => go("activities")}
+                >
+                  Explore my journey
+                  <ArrowRight size={17} />
+                </button>
 
-            <h2 className="title">
-              Latest <span>Activities</span>
-            </h2>
-          </div>
+                <button
+                  className="homeTextButton"
+                  onClick={() => go("about")}
+                >
+                  More about me
+                  <ArrowRight size={16} />
+                </button>
 
-          <button
-            className="text"
-            onClick={() => go("activities")}
-          >
-            View all activities
-            <ArrowRight size={16} />
-          </button>
-        </div>
+              </div>
 
-        {activities.length > 0 ? (
-          <div className="cards">
-            {activities.map((activity) => (
-              <article className="card" key={activity._id}>
-                <img
-                  src={activity.image}
-                  alt={activity.title}
-                />
+              <div className="homeHeroMeta">
 
                 <div>
-                  <em>{activity.category}</em>
+                  <GraduationCap size={18} />
 
-                  {activity.date && (
-                    <small className="date">
-                      <CalendarDays size={13} />
-
-                      {new Date(
-                        activity.date
-                      ).toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </small>
-                  )}
-
-                  <h3>{activity.title}</h3>
-
-                  <p>{activity.description}</p>
-
-                  <Link
-                    className="text activityLink"
-                    to={`/activities/${activity.id}`}
-                  >
-                    Read More
-                    <ArrowRight size={16} />
-                  </Link>
+                  <span>
+                    <b>B.V.Sc. & A.H.</b>
+                    <small>Veterinary Medicine</small>
+                  </span>
                 </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p>Loading latest activities...</p>
-        )}
 
-        <div className="categories">
-          <div>
-            <PawPrint size={20} />
+                <div>
+                  <MapPin size={18} />
 
-            <span>
-              <b>Clinical Experiences</b>
-              <small>Hands-on learning</small>
-            </span>
-          </div>
+                  <span>
+                    <b>{location}</b>
+                    <small>{locationText}</small>
+                  </span>
+                </div>
 
-          <div>
-            <MapPin size={20} />
+              </div>
 
-            <span>
-              <b>Farm Visits</b>
-              <small>Field experiences</small>
-            </span>
-          </div>
-
-          <div>
-            <Sparkles size={20} />
-
-            <span>
-              <b>Workshops</b>
-              <small>Learning & development</small>
-            </span>
-          </div>
-
-          <div>
-            <Heart size={20} />
-
-            <span>
-              <b>Student Life</b>
-              <small>Memorable moments</small>
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* GALLERY */}
-<section className="section" id="gallery">
-  <div className="container">
-    <div className="head">
-      <div>
-        <div className="kicker">
-          <Sparkles size={15} />
-          MOMENTS
-        </div>
-
-        <h2 className="title">
-          Gallery <span>Highlights</span>
-        </h2>
-      </div>
-
-      <button
-        className="text"
-        onClick={() => go("gallery")}
-      >
-        View full gallery
-        <ArrowRight size={16} />
-      </button>
-    </div>
-
-    {gallery.length > 0 ? (
-      <div className="gallery">
-        {gallery.slice(0, 5).map((album) => (
-          <Link
-            key={album._id}
-            to="/gallery"
-            className="homeGalleryItem"
-          >
-            <img
-              src={album.images?.[0]}
-              alt={album.title}
-            />
-
-            <div className="homeGalleryOverlay">
-              <strong>{album.title}</strong>
-
-              {album.date && (
-                <small>
-                  {new Date(album.date).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </small>
-              )}
-            </div>
-          </Link>
-        ))}
-      </div>
-    ) : (
-      <p>Loading gallery...</p>
-    )}
-  </div>
-</section>
-
-    {/* ACHIEVEMENTS */}
-    <section className="section soft">
-      <div className="container">
-        <div className="kicker">
-          <Award size={15} />
-          MILESTONES
-        </div>
-
-        <h2 className="title">
-          Achievements & <span>Milestones</span>
-        </h2>
-
-        <div className="achievements">
-          <article>
-            <div className="award">
-              <GraduationCap />
             </div>
 
-            <div>
-              <h3>Veterinary Education</h3>
-              <p>B.V.Sc. & A.H. student</p>
-              <small>2026</small>
-            </div>
-          </article>
+            <div className="homeHeroVisual">
 
-          <article>
-            <div className="award">
-              <Award />
+              <div className="homeHeroImageFrame">
+                <img
+                  src={heroImage}
+                  alt={`${name}'s veterinary journey`}
+                />
+              </div>
+
+              <div className="homeHeroBadge">
+                <Heart size={17} />
+
+                <span>
+                  Learning with
+                  <b>compassion</b>
+                </span>
+              </div>
+
+              <div className="homeHeroNumber">
+                <span>01</span>
+                <small>MY JOURNEY</small>
+              </div>
+
             </div>
 
-            <div>
-              <h3>Certificate of Completion</h3>
-              <p>One Day Seminar on Zoonotic Diseases</p>
-              <small>February 2026</small>
-            </div>
-          </article>
+          </div>
+        </section>
 
-          <article>
-            <div className="award">
+
+        {/* =========================
+            INTRO STRIP
+        ========================= */}
+
+        <section className="homeIntroStrip">
+          <div className="container homeIntroInner">
+
+            <div className="homeIntroIcon">
               <PawPrint />
             </div>
 
             <div>
-              <h3>Practical Learning</h3>
-              <p>Clinical and field experiences</p>
-              <small>2025 – 2026</small>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
+              <span>MY APPROACH</span>
 
-    {/* CTA */}
-    <section className="cta">
-      <div className="container ctaIn">
-        <div>
-          <div className="kicker light">
-            FOLLOW THE JOURNEY
+              <h2>
+                Learning medicine through
+                <em>experience, empathy & curiosity.</em>
+              </h2>
+            </div>
+
+            <p>
+              From classrooms to farms, clinics and
+              laboratories, every experience adds another
+              piece to the journey.
+            </p>
+
+          </div>
+        </section>
+
+
+        {/* =========================
+            ABOUT
+        ========================= */}
+
+        <section
+          className="section homeAboutSection"
+          id="about"
+        >
+
+          <div className="container homeAboutGrid">
+
+            <div className="homeAboutImage">
+
+              <img
+                src={profileImage}
+                alt={`${name} - Veterinary student`}
+                loading="lazy"
+              />
+
+              <div className="homeAboutStamp">
+                <PawPrint size={18} />
+
+                <span>
+                  STUDENT
+                  <b>VETERINARIAN</b>
+                </span>
+              </div>
+
+            </div>
+
+
+            <div className="homeAboutContent">
+
+              <div className="homeSectionKicker">
+                <PawPrint size={14} />
+                ABOUT THE JOURNEY
+              </div>
+
+              <h2 className="homeSectionTitle">
+                {aboutTitle}
+              </h2>
+
+              <p className="homeAboutLead">
+                {aboutText}
+              </p>
+
+              <p>
+                Through farm visits, clinical exposure,
+                laboratory work, workshops, seminars and
+                everyday student life, I am building my
+                understanding of animal health and welfare.
+              </p>
+
+              <div className="homeAboutStats">
+
+                <div>
+                  <b>2026</b>
+                  <span>Graduation Journey</span>
+                </div>
+
+                <div>
+                  <b>B.V.Sc.</b>
+                  <span>Veterinary Medicine</span>
+                </div>
+
+                <div>
+                  <b>∞</b>
+                  <span>Things to Learn</span>
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
 
-          <h2>
-            Every experience tells a story.
-            <span> Come along for mine.</span>
-          </h2>
+        </section>
+
+
+        {/* =========================
+            ACTIVITIES
+        ========================= */}
+
+        <section className="section homeActivitiesSection">
+
+          <div className="container">
+
+            <div className="homeSectionHeader">
+
+              <div>
+                <div className="homeSectionKicker">
+                  <Sparkles size={14} />
+                  RECENT EXPERIENCES
+                </div>
+
+                <h2 className="homeSectionTitle">
+                  Learning beyond
+                  <span>the classroom.</span>
+                </h2>
+              </div>
+
+              <button
+                className="homeViewLink"
+                onClick={() => go("activities")}
+              >
+                View all activities
+                <ArrowRight size={16} />
+              </button>
+
+            </div>
+
+
+            {activities.length > 0 ? (
+
+              <div className="homeActivityGrid">
+
+                {activities.map((activity, index) => (
+
+                  <article
+                    className={`homeActivityCard ${
+                      index === 0 ? "featured" : ""
+                    }`}
+                    key={activity._id}
+                  >
+
+                    <div className="homeActivityImage">
+
+                      <img
+                        src={activity.image}
+                        alt={activity.title}
+                        loading="lazy"
+                      />
+
+                      <span>
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+
+                    </div>
+
+                    <div className="homeActivityContent">
+
+                      <div className="homeActivityTop">
+
+                        <em>
+                          {activity.category}
+                        </em>
+
+                        {activity.date && (
+                          <small>
+                            <CalendarDays size={12} />
+
+                            {new Date(
+                              activity.date
+                            ).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )}
+                          </small>
+                        )}
+
+                      </div>
+
+                      <h3>
+                        {activity.title}
+                      </h3>
+
+                      <p>
+                        {activity.description}
+                      </p>
+
+                      <Link
+                        to={`/activities/${activity.id}`}
+                        className="homeActivityLink"
+                      >
+                        Read experience
+                        <ArrowRight size={15} />
+                      </Link>
+
+                    </div>
+
+                  </article>
+
+                ))}
+
+              </div>
+
+            ) : (
+              <p className="homeLoading">
+                Loading latest activities...
+              </p>
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* =========================
+            GALLERY
+        ========================= */}
+
+        <section
+          className="section homeGallerySection"
+          id="gallery"
+        >
+
+          <div className="container">
+
+            <div className="homeSectionHeader">
+
+              <div>
+
+                <div className="homeSectionKicker">
+                  <Sparkles size={14} />
+                  PHOTO JOURNAL
+                </div>
+
+                <h2 className="homeSectionTitle">
+                  Moments from
+                  <span>the journey.</span>
+                </h2>
+
+              </div>
+
+              <button
+                className="homeViewLink"
+                onClick={() => go("gallery")}
+              >
+                Explore gallery
+                <ArrowRight size={16} />
+              </button>
+
+            </div>
+
+
+            {gallery.length > 0 ? (
+
+              <div className="homeEditorialGallery">
+
+                {gallery.slice(0, 5).map(
+                  (album, index) => (
+
+                    <button
+                      key={album._id}
+                      type="button"
+                      className={`homeGalleryPhoto photo-${
+                        index + 1
+                      }`}
+                      onClick={() => {
+                        setSelectedGalleryAlbum(album);
+                        setSelectedGalleryImage(0);
+                      }}
+                    >
+
+                      <img
+                        src={album.images?.[0]}
+                        alt={album.title}
+                        loading="lazy"
+                      />
+
+                      <div className="homeGalleryPhotoOverlay">
+
+                        <span>
+                          {album.category ||
+                            "JOURNEY"}
+                        </span>
+
+                        <strong>
+                          {album.title}
+                        </strong>
+
+                        {album.date && (
+                          <small>
+                            {new Date(
+                              album.date
+                            ).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )}
+                          </small>
+                        )}
+
+                      </div>
+
+                    </button>
+
+                  )
+                )}
+
+              </div>
+
+            ) : (
+              <p className="homeLoading">
+                Loading gallery...
+              </p>
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* =========================
+            ACHIEVEMENTS
+        ========================= */}
+
+        <section className="section homeMilestonesSection">
+
+          <div className="container">
+
+            <div className="homeSectionHeader">
+
+              <div>
+
+                <div className="homeSectionKicker">
+                  <Award size={14} />
+                  MILESTONES
+                </div>
+
+                <h2 className="homeSectionTitle">
+                  Small steps,
+                  <span>meaningful milestones.</span>
+                </h2>
+
+              </div>
+
+              <button
+                className="homeViewLink"
+                onClick={() =>
+                  go("achievements")
+                }
+              >
+                View all achievements
+                <ArrowRight size={16} />
+              </button>
+
+            </div>
+
+
+            {featuredAchievements.length > 0 ? (
+
+              <div className="homeMilestoneGrid">
+
+                {featuredAchievements.map(
+                  (achievement, index) => (
+
+                    <article
+                      className="homeMilestone"
+                      key={achievement._id}
+                    >
+
+                      <div className="homeMilestoneNumber">
+                        {String(index + 1).padStart(
+                          2,
+                          "0"
+                        )}
+                      </div>
+
+                      <div className="homeMilestoneIcon">
+
+                        {achievement.category ===
+                        "Education" ? (
+                          <GraduationCap />
+                        ) : achievement.category ===
+                          "Animal Welfare" ? (
+                          <Heart />
+                        ) : achievement.category ===
+                          "Farm & Field Experience" ? (
+                          <MapPin />
+                        ) : (
+                          <Award />
+                        )}
+
+                      </div>
+
+                      <div className="homeMilestoneContent">
+
+                        <span>
+                          {achievement.category}
+                        </span>
+
+                        <h3>
+                          {achievement.title}
+                        </h3>
+
+                        {achievement.organization && (
+                          <p className="organization">
+                            {achievement.organization}
+                          </p>
+                        )}
+
+                        {achievement.date && (
+                          <small>
+                            {new Date(
+                              achievement.date
+                            ).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )}
+                          </small>
+                        )}
+
+                      </div>
+
+                      {achievement.image && (
+                        <a
+                          href={achievement.image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="homeMilestoneArrow"
+                          aria-label={`View certificate for ${achievement.title}`}
+                        >
+                          <ArrowRight size={17} />
+                        </a>
+                      )}
+
+                    </article>
+
+                  )
+                )}
+
+              </div>
+
+            ) : (
+              <div className="homeMilestoneEmpty">
+                <Award size={22} />
+
+                <span>
+                  New achievements will appear here
+                  as the journey continues.
+                </span>
+              </div>
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* =========================
+            CTA
+        ========================= */}
+
+        <section className="homeCTA">
+
+          <div className="container homeCTAInner">
+
+            <div className="homeCTAIcon">
+              <PawPrint />
+            </div>
+
+            <div>
+
+              <div className="homeSectionKicker light">
+                KEEP EXPLORING
+              </div>
+
+              <h2>
+                There is always
+                <span>more to learn.</span>
+              </h2>
+
+              <p>
+                Follow the experiences, discoveries and
+                moments that continue to shape this
+                veterinary journey.
+              </p>
+
+            </div>
+
+            <button
+              className="homeCTAButton"
+              onClick={() => go("contact")}
+            >
+              Get in touch
+              <ArrowRight size={17} />
+            </button>
+
+          </div>
+
+        </section>
+
+      </main>
+
+
+      {/* GALLERY VIEWER */}
+
+      {selectedGalleryAlbum && (
+        <GalleryViewer
+          album={selectedGalleryAlbum}
+          selectedImage={selectedGalleryImage}
+          setSelectedImage={
+            setSelectedGalleryImage
+          }
+          onClose={() => {
+            setSelectedGalleryAlbum(null);
+            setSelectedGalleryImage(0);
+          }}
+        />
+      )}
+
+
+      {/* FOOTER */}
+
+      <footer id="contact">
+
+        <div className="container footer">
+
+          <div>
+
+            <div className="footerBrand">
+              <PawPrint />
+
+              <span>
+                <b>{name.toUpperCase()}</b>
+
+                <small>
+                  VETERINARY JOURNEY
+                </small>
+              </span>
+            </div>
+
+            <p>
+              Documenting my journey through veterinary
+              medicine, one experience at a time.
+            </p>
+
+            <div className="social">
+
+              <a
+                href="https://www.instagram.com/b_end_u?igsh=MWxpamx5aGNodHR0cQ=="
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <Instagram />
+              </a>
+
+              <a
+                href="mailto:bindubasnet58@gmail.com"
+                aria-label="Email"
+              >
+                <Mail />
+              </a>
+
+            </div>
+
+          </div>
+
+
+          <div>
+
+            <h4>Quick Links</h4>
+
+            <button onClick={() => go("home")}>
+              Home
+            </button>
+
+            <button onClick={() => go("about")}>
+              About
+            </button>
+
+            <button onClick={() => go("activities")}>
+              Activities
+            </button>
+
+            <button onClick={() => go("gallery")}>
+              Gallery
+            </button>
+
+          </div>
+
+
+          <div>
+
+            <h4>Explore</h4>
+
+            <button
+              onClick={() => go("achievements")}
+            >
+              Achievements
+            </button>
+
+            <span>Clinical Experiences</span>
+            <span>Farm Visits</span>
+            <span>Workshops & Seminars</span>
+            <span>Student Life</span>
+
+          </div>
+
+
+          {/* SUBSCRIBE */}
+
+          <div>
+
+            <h4>Stay Updated</h4>
+
+            <p>
+              Subscribe to hear about the latest
+              activities and experiences.
+            </p>
+
+            <form
+              className="subscribe"
+              onSubmit={handleSubscribe}
+            >
+
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setSubscribeError("");
+                  setSubscribed(false);
+                }}
+                placeholder="Enter your email"
+                aria-label="Email address"
+                disabled={isSubmitting}
+              />
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? "Sending..."
+                  : "Subscribe"}
+              </button>
+
+            </form>
+
+            {subscribeError && (
+              <small className="subscribeMessage error">
+                {subscribeError}
+              </small>
+            )}
+
+            {subscribed && (
+              <small className="subscribeMessage success">
+                Thanks for subscribing! 🐾
+              </small>
+            )}
+
+          </div>
+
         </div>
 
-        <button
-          className="btn cream"
-          onClick={() => go("contact")}
-        >
-          Get In Touch
-          <ArrowRight size={17} />
-        </button>
-      </div>
-    </section>
-  </main>
 
-  {/* FOOTER */}
-  <footer id="contact">
-    <div className="container footer">
-      <div>
-        <div className="footerBrand">
-          <PawPrint />
+        <div className="container copyright">
 
           <span>
-            <b>{name.toUpperCase()}</b>
-            <small>VETERINARY JOURNEY</small>
+            © 2026 {name}. All rights reserved.
           </span>
+
+          <span>
+            Made with ♡ for animals
+          </span>
+
         </div>
 
-        <p>
-          Documenting my journey through veterinary medicine, one
-          experience at a time.
-        </p>
-
-        <div className="social">
-          <button aria-label="Facebook">
-            <Facebook />
-          </button>
-
-          <button aria-label="Instagram">
-            <Instagram />
-          </button>
-
-          <button aria-label="LinkedIn">
-            <Linkedin />
-          </button>
-
-          <button aria-label="Email">
-            <Mail />
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <h4>Quick Links</h4>
-
-        <button onClick={() => go("home")}>
-          Home
-        </button>
-
-        <button onClick={() => go("about")}>
-          About
-        </button>
-
-        <button onClick={() => go("activities")}>
-          Activities
-        </button>
-
-        <button onClick={() => go("gallery")}>
-          Gallery
-        </button>
-      </div>
-
-      <div>
-        <h4>Categories</h4>
-
-        <span>Clinical Experiences</span>
-        <span>Farm Visits</span>
-        <span>Workshops & Seminars</span>
-        <span>Student Life</span>
-      </div>
-
-      <div>
-        <h4>Stay Updated</h4>
-
-        <p>
-          Subscribe to hear about the latest activities.
-        </p>
-
-        <div className="subscribe">
-          <input placeholder="Enter your email" />
-
-          <button>Subscribe</button>
-        </div>
-      </div>
-    </div>
-
-    <div className="container copyright">
-      © 2026 {name}. All rights reserved.
-
-      <span>Made with ♡ for animals</span>
-    </div>
-  </footer>
-</>
-
-
-);
-
+      </footer>
+    </>
+  );
 }
+

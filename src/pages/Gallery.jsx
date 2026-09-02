@@ -1,10 +1,8 @@
+
 import React, { useEffect, useState } from "react";
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from "lucide-react";
+import { CalendarDays } from "lucide-react";
+
+import GalleryViewer from "../components/GalleryViewer";
 
 import { client } from "../sanity/client";
 import { galleryQuery } from "../sanity/queries";
@@ -17,6 +15,9 @@ export default function Gallery() {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
 
+  /*
+   * LOAD GALLERY
+   */
   useEffect(() => {
     client
       .fetch(galleryQuery)
@@ -31,62 +32,25 @@ export default function Gallery() {
       });
   }, []);
 
+  /*
+   * OPEN ALBUM
+   */
   const openAlbum = (album) => {
     setSelectedAlbum(album);
     setSelectedImage(0);
   };
 
+  /*
+   * CLOSE VIEWER
+   */
   const closeAlbum = () => {
     setSelectedAlbum(null);
     setSelectedImage(0);
   };
 
-  const nextImage = () => {
-    if (!selectedAlbum?.images?.length) return;
-
-    setSelectedImage((current) =>
-      current === selectedAlbum.images.length - 1
-        ? 0
-        : current + 1
-    );
-  };
-
-  const previousImage = () => {
-    if (!selectedAlbum?.images?.length) return;
-
-    setSelectedImage((current) =>
-      current === 0
-        ? selectedAlbum.images.length - 1
-        : current - 1
-    );
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (!selectedAlbum) return;
-
-      if (event.key === "Escape") {
-        closeAlbum();
-      }
-
-      if (event.key === "ArrowRight") {
-        nextImage();
-      }
-
-      if (event.key === "ArrowLeft") {
-        previousImage();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedAlbum]);
-
   return (
     <main className="galleryPage">
+      {/* PAGE HERO */}
       <section className="pageHero">
         <div className="container">
           <div className="kicker">MY JOURNEY</div>
@@ -96,42 +60,62 @@ export default function Gallery() {
           </h1>
 
           <p>
-            A collection of moments, experiences, practical learning,
-            veterinary activities, and memorable moments from my journey.
+            A collection of moments, experiences, practical
+            learning, veterinary activities, and memorable
+            moments from my journey.
           </p>
         </div>
       </section>
 
+      {/* GALLERY ALBUMS */}
       <section className="section soft">
         <div className="container">
 
+          {/* LOADING */}
           {loading && <p>Loading gallery...</p>}
 
+          {/* ERROR */}
           {error && <p>{error}</p>}
 
+          {/* EMPTY */}
           {!loading && !error && gallery.length === 0 && (
-            <p>No gallery images have been published yet.</p>
+            <p>
+              No gallery images have been published yet.
+            </p>
           )}
 
+          {/* ALBUMS */}
           {!loading && !error && gallery.length > 0 && (
             <div className="galleryAlbums">
-
               {gallery.map((album) => {
                 const images = album.images || [];
 
-                if (images.length === 0) return null;
+                if (images.length === 0) {
+                  return null;
+                }
 
                 return (
                   <article
                     className="galleryAlbum"
                     key={album._id}
                     onClick={() => openAlbum(album)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" ||
+                        event.key === " "
+                      ) {
+                        event.preventDefault();
+                        openAlbum(album);
+                      }
+                    }}
                   >
                     <div className="galleryAlbumImage">
-
                       <img
                         src={images[0]}
                         alt={album.title}
+                        loading="lazy"
                       />
 
                       {images.length > 1 && (
@@ -139,11 +123,9 @@ export default function Gallery() {
                           {images.length} photos
                         </div>
                       )}
-
                     </div>
 
                     <div className="galleryAlbumInfo">
-
                       {album.category && (
                         <span className="galleryCategory">
                           {album.category}
@@ -165,127 +147,25 @@ export default function Gallery() {
                           })}
                         </small>
                       )}
-
                     </div>
                   </article>
                 );
               })}
-
             </div>
           )}
-
         </div>
       </section>
 
-      {/* PHOTO VIEWER */}
-
-      {selectedAlbum && selectedAlbum.images?.length > 0 && (
-        <div
-          className="galleryLightbox"
-          onClick={closeAlbum}
-        >
-
-          <button
-            className="galleryClose"
-            onClick={closeAlbum}
-            aria-label="Close gallery"
-          >
-            <X />
-          </button>
-
-          <button
-            className="galleryNav galleryPrev"
-            onClick={(event) => {
-              event.stopPropagation();
-              previousImage();
-            }}
-            aria-label="Previous photo"
-          >
-            <ChevronLeft />
-          </button>
-
-          <div
-            className="galleryViewer"
-            onClick={(event) => event.stopPropagation()}
-          >
-
-            <div className="galleryMainPhoto">
-
-              <img
-                src={selectedAlbum.images[selectedImage]}
-                alt={`${selectedAlbum.title} ${selectedImage + 1}`}
-              />
-
-              <div className="galleryCounter">
-                {selectedImage + 1} / {selectedAlbum.images.length}
-              </div>
-
-            </div>
-
-            <div className="galleryViewerInfo">
-
-              <div>
-                {selectedAlbum.category && (
-                  <span className="galleryCategory">
-                    {selectedAlbum.category}
-                  </span>
-                )}
-
-                <h2>{selectedAlbum.title}</h2>
-
-                {selectedAlbum.date && (
-                  <p>
-                    <CalendarDays size={14} />
-
-                    {new Date(
-                      selectedAlbum.date
-                    ).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                )}
-              </div>
-
-              <div className="galleryThumbnails">
-
-                {selectedAlbum.images.map((image, index) => (
-                  <button
-                    key={image + index}
-                    className={
-                      index === selectedImage
-                        ? "galleryThumbnail active"
-                        : "galleryThumbnail"
-                    }
-                    onClick={() => setSelectedImage(index)}
-                  >
-                    <img
-                      src={image}
-                      alt={`Thumbnail ${index + 1}`}
-                    />
-                  </button>
-                ))}
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <button
-            className="galleryNav galleryNext"
-            onClick={(event) => {
-              event.stopPropagation();
-              nextImage();
-            }}
-            aria-label="Next photo"
-          >
-            <ChevronRight />
-          </button>
-
-        </div>
+      {/* REUSABLE PHOTO VIEWER */}
+      {selectedAlbum && (
+        <GalleryViewer
+          album={selectedAlbum}
+          selectedImage={selectedImage}
+          setSelectedImage={setSelectedImage}
+          onClose={closeAlbum}
+        />
       )}
     </main>
   );
 }
+

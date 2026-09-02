@@ -12,6 +12,7 @@ import Home from "./pages/Home";
 import Activities from "./pages/Activities";
 import ActivityDetails from "./pages/ActivityDetails";
 import Gallery from "./pages/Gallery";
+import Achievements from "./pages/Achievements";
 import Navbar from "./components/Navbar";
 import "./styles.css";
 
@@ -27,6 +28,12 @@ function App() {
 
     if (id === "gallery") {
       navigate("/gallery");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (id === "achievements") {
+      navigate("/achievements");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -61,6 +68,11 @@ function App() {
         />
 
         <Route path="/gallery" element={<Gallery />} />
+
+        <Route
+          path="/achievements"
+          element={<Achievements />}
+        />
       </Routes>
     </>
   );

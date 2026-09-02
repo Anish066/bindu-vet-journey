@@ -1,3 +1,4 @@
+
 export const activitiesQuery = `*[_type == "activity"] | order(date desc) {
   _id,
   "id": slug.current,
@@ -35,3 +36,16 @@ export const homeQuery = `*[_type == "home"][0] {
   aboutText,
   "profileImage": profileImage.asset->url
 }`;
+
+export const achievementsQuery = `*[_type == "achievement"] | order(date desc) {
+  _id,
+  title,
+  category,
+  date,
+  organization,
+  description,
+  "image": image.asset->url,
+  link,
+  featured
+}`;
+
